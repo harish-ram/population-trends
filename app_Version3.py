@@ -7,14 +7,13 @@ import numpy as np
 
 st.title("Global Population Forecast (2000–2035)")
 
-# Fetch data as a dictionary, then build a DataFrame
+# Fetch data robustly
 data = []
 for year in range(2000, 2024):
     val = wb.data.get('SP.POP.TOTL', 'WLD', time=year)
     val = list(val)
-    if len(val) > 0:
-        value = val[0]['value']
-        data.append({'year': year, 'population': value})
+    if len(val) > 0 and val[0].get('value') is not None:
+        data.append({'year': year, 'population': val[0]['value']})
 
 pop_df = pd.DataFrame(data)
 
@@ -29,7 +28,10 @@ model = LinearRegression().fit(X, y)
 future_years = np.arange(2024, 2036).reshape(-1, 1)
 future_pred = model.predict(future_years)
 
-predicted_df = pd.DataFrame({'year': future_years.flatten(), 'population': future_pred})
+predicted_df = pd.DataFrame({
+    'year': future_years.flatten(),
+    'population': future_pred
+})
 final_df = pd.concat([pop_df, predicted_df], ignore_index=True)
 
 st.subheader("Future Predictions (2024–2035)")
