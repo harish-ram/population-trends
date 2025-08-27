@@ -12,13 +12,17 @@ data = []
 for year in range(2000, 2024):
     val = wb.data.get('SP.POP.TOTL', 'WLD', time=year)
     val = list(val)
-    if len(val) > 0 and isinstance(val[0], dict) and val[0].get('value') is not None:
+    if len(val) > 0 and isinstance(val[0], dict) and ('value' in val[0]) and (val[0]['value'] is not None):
         data.append({'year': year, 'population': val[0]['value']})
 
 pop_df = pd.DataFrame(data)
 
-st.subheader("Sample (Real) Population Data")
+st.write("pop_df columns:", pop_df.columns.tolist())
 st.dataframe(pop_df.head())
+
+if pop_df.empty or 'year' not in pop_df.columns or 'population' not in pop_df.columns:
+    st.error("No valid population data retrieved from World Bank. Please check the API or your internet connection.")
+    st.stop()
 
 # Linear Regression with scikit-learn
 X = pop_df[['year']]
