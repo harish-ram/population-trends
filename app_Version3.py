@@ -16,7 +16,13 @@ import zipfile, io
 if r.status_code == 200:
     z = zipfile.ZipFile(io.BytesIO(r.content))
     st.write("Files in ZIP:", z.namelist())
-
+csv_name = [name for name in z.namelist() if name.endswith(".csv") and "Data" in name]
+if csv_name:
+    df = pd.read_csv(z.open(csv_name[0]), skiprows=4)
+    st.write("Columns in World Bank CSV:", df.columns.tolist())
+    st.write(df.head(10))
+else:
+    st.error("No population data CSV found in ZIP!")
 st.title("Global Population Forecast (2000–2035)")
 
 # Try live data with wbgapi
