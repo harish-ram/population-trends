@@ -11,6 +11,11 @@ try:
     st.write("Content length:", len(r.content))
 except Exception as e:
     st.error(f"HTTP request failed: {e}")
+import zipfile, io
+
+if r.status_code == 200:
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+    st.write("Files in ZIP:", z.namelist())
 
 st.title("Global Population Forecast (2000–2035)")
 
