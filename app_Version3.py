@@ -3,6 +3,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 import numpy as np
+import requests
+st.write("Testing World Bank API connectivity...")
+try:
+    r = requests.get("http://api.worldbank.org/v2/en/indicator/SP.POP.TOTL?downloadformat=csv")
+    st.write("Status code:", r.status_code)
+    st.write("Content length:", len(r.content))
+except Exception as e:
+    st.error(f"HTTP request failed: {e}")
 
 st.title("Global Population Forecast (2000–2035)")
 
