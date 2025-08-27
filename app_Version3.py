@@ -7,13 +7,16 @@ import numpy as np
 
 st.title("Global Population Forecast (2000–2035)")
 
-# Fetch and reshape data
-pop_df = wb.data.DataFrame('SP.POP.TOTL', economy='WLD', time=range(2000, 2024))
-pop_df = pop_df.transpose()
-pop_df = pop_df.rename(columns={0: 'population'})
-pop_df['year'] = pop_df.index.astype(int)
-pop_df = pop_df[['year', 'population']]
-pop_df = pop_df.reset_index(drop=True)
+# Fetch data as a dictionary, then build a DataFrame
+data = []
+for year in range(2000, 2024):
+    val = wb.data.get('SP.POP.TOTL', 'WLD', time=year)
+    val = list(val)
+    if len(val) > 0:
+        value = val[0]['value']
+        data.append({'year': year, 'population': value})
+
+pop_df = pd.DataFrame(data)
 
 st.subheader("Sample (Real) Population Data")
 st.dataframe(pop_df.head())
