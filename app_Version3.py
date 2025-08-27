@@ -1,35 +1,53 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import wbgapi as wb
 from sklearn.linear_model import LinearRegression
 import numpy as np
 
 st.title("Global Population Forecast (2000–2035)")
-st.write("Trying to fetch a single year's data for debugging...")
+
+# --- Try wbgapi first ---
 try:
-    test_val = wb.data.get('SP.POP.TOTL', 'WLD', time=2023)
-    st.write("wb.data.get output for 2023:", list(test_val))
+    import wbgapi as wb
+    data = []
+    for year in range(2000, 2024):
+        val = list(wb.data.get('SP.POP.TOTL', 'WLD', time=year))
+        if len(val) > 0 and isinstance(val[0], dict) and ('value' in val[0]) and (val[0]['value'] is not None):
+            data.append({'year': year, 'population': val[0]['value']})
+    pop_df = pd.DataFrame(data)
+    source = "wbgapi"
 except Exception as e:
-    st.error(f"API call failed: {e}")
-# Fetch data robustly
-data = []
-for year in range(2000, 2024):
-    val = wb.data.get('SP.POP.TOTL', 'WLD', time=year)
-    val = list(val)
-    if len(val) > 0 and isinstance(val[0], dict) and ('value' in val[0]) and (val[0]['value'] is not None):
-        data.append({'year': year, 'population': val[0]['value']})
+    st.warning(f"wbgapi failed: {e}. Trying HTTP fallback...")
+    # --- Fallback: Direct HTTP request to World Bank API ---
+    import requests
+    url = "http://api.worldbank.org/v2/en/indicator/SP.POP.TOTL?downloadformat=csv"
+    r = requests.get(url)
+    if r.status_code == 200:
+        import zipfile, io
+        z = zipfile.ZipFile(io.BytesIO(r.content))
+        # Find the population data CSV in the ZIP
+        csv_name = [name for name in z.namelist() if name.endswith(".csv") and "Data" in name]
+        if csv_name:
+            df = pd.read_csv(z.open(csv_name[0]), skiprows=4)
+            world = df[df['Country Name'] == 'World']
+            years = [str(y) for y in range(2000, 2024)]
+            pop_df = world.melt(id_vars=['Country Name'], value_vars=years, var_name='year', value_name='population')
+            pop_df = pop_df[['year', 'population']]
+            pop_df['year'] = pop_df['year'].astype(int)
+            pop_df['population'] = pd.to_numeric(pop_df['population'], errors='coerce')
+            pop_df = pop_df.dropna()
+            source = "HTTP direct download"
+        else:
+            st.error("Could not find the data CSV in the World Bank ZIP file.")
+            st.stop()
+    else:
+        st.error("Failed to download data from World Bank API.")
+        st.stop()
 
-pop_df = pd.DataFrame(data)
+st.success(f"Loaded data from: {source}")
+st.write("Data sample:", pop_df.head())
 
-st.write("pop_df columns:", pop_df.columns.tolist())
-st.dataframe(pop_df.head())
-
-if pop_df.empty or 'year' not in pop_df.columns or 'population' not in pop_df.columns:
-    st.error("No valid population data retrieved from World Bank. Please check the API or your internet connection.")
-    st.stop()
-
-# Linear Regression with scikit-learn
+# Regression and plotting as before
 X = pop_df[['year']]
 y = pop_df['population']
 model = LinearRegression().fit(X, y)
@@ -37,16 +55,12 @@ model = LinearRegression().fit(X, y)
 future_years = np.arange(2024, 2036).reshape(-1, 1)
 future_pred = model.predict(future_years)
 
-predicted_df = pd.DataFrame({
-    'year': future_years.flatten(),
-    'population': future_pred
-})
+predicted_df = pd.DataFrame({'year': future_years.flatten(), 'population': future_pred})
 final_df = pd.concat([pop_df, predicted_df], ignore_index=True)
 
 st.subheader("Future Predictions (2024–2035)")
 st.dataframe(predicted_df)
 
-# Plot
 fig, ax = plt.subplots(figsize=(10,6))
 ax.plot(final_df['year'], final_df['population'], marker='o', label='Population (Real + Predicted)')
 ax.axvline(x=2023, color='red', linestyle='--', label='Prediction Starts')
