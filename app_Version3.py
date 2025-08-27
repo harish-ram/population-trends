@@ -12,7 +12,7 @@ data = []
 for year in range(2000, 2024):
     val = wb.data.get('SP.POP.TOTL', 'WLD', time=year)
     val = list(val)
-    if len(val) > 0 and val[0].get('value') is not None:
+    if len(val) > 0 and isinstance(val[0], dict) and val[0].get('value') is not None:
         data.append({'year': year, 'population': val[0]['value']})
 
 pop_df = pd.DataFrame(data)
