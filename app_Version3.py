@@ -6,10 +6,10 @@ import numpy as np
 
 st.title("Global Population Forecast (2000–2035)")
 
-# --- Try wbgapi first ---
+# Try live data with wbgapi
+data = []
 try:
     import wbgapi as wb
-    data = []
     for year in range(2000, 2024):
         val = list(wb.data.get('SP.POP.TOTL', 'WLD', time=year))
         if len(val) > 0 and isinstance(val[0], dict) and ('value' in val[0]) and (val[0]['value'] is not None):
@@ -18,14 +18,13 @@ try:
     source = "wbgapi"
 except Exception as e:
     st.warning(f"wbgapi failed: {e}. Trying HTTP fallback...")
-    # --- Fallback: Direct HTTP request to World Bank API ---
+    # Fallback to World Bank HTTP API
     import requests
+    import zipfile, io
     url = "http://api.worldbank.org/v2/en/indicator/SP.POP.TOTL?downloadformat=csv"
     r = requests.get(url)
     if r.status_code == 200:
-        import zipfile, io
         z = zipfile.ZipFile(io.BytesIO(r.content))
-        # Find the population data CSV in the ZIP
         csv_name = [name for name in z.namelist() if name.endswith(".csv") and "Data" in name]
         if csv_name:
             df = pd.read_csv(z.open(csv_name[0]), skiprows=4)
@@ -44,10 +43,17 @@ except Exception as e:
         st.error("Failed to download data from World Bank API.")
         st.stop()
 
-st.success(f"Loaded data from: {source}")
-st.write("Data sample:", pop_df.head())
+# Show columns and first rows for diagnostics
+st.write("Data source:", source)
+st.write("pop_df columns:", pop_df.columns.tolist())
+st.dataframe(pop_df.head())
 
-# Regression and plotting as before
+# DataFrame column check
+if pop_df.empty or 'year' not in pop_df.columns or 'population' not in pop_df.columns:
+    st.error("No valid population data retrieved or columns missing. Columns present: " + str(pop_df.columns.tolist()))
+    st.stop()
+
+# Linear Regression with scikit-learn
 X = pop_df[['year']]
 y = pop_df['population']
 model = LinearRegression().fit(X, y)
@@ -61,6 +67,7 @@ final_df = pd.concat([pop_df, predicted_df], ignore_index=True)
 st.subheader("Future Predictions (2024–2035)")
 st.dataframe(predicted_df)
 
+# Plot
 fig, ax = plt.subplots(figsize=(10,6))
 ax.plot(final_df['year'], final_df['population'], marker='o', label='Population (Real + Predicted)')
 ax.axvline(x=2023, color='red', linestyle='--', label='Prediction Starts')
