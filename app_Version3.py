@@ -6,7 +6,12 @@ from sklearn.linear_model import LinearRegression
 import numpy as np
 
 st.title("Global Population Forecast (2000–2035)")
-
+st.write("Trying to fetch a single year's data for debugging...")
+try:
+    test_val = wb.data.get('SP.POP.TOTL', 'WLD', time=2023)
+    st.write("wb.data.get output for 2023:", list(test_val))
+except Exception as e:
+    st.error(f"API call failed: {e}")
 # Fetch data robustly
 data = []
 for year in range(2000, 2024):
