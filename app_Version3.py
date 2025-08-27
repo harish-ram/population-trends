@@ -7,10 +7,12 @@ import numpy as np
 
 st.title("Global Population Forecast (2000–2035)")
 
-# Fetch population data
-pop_df = wb.data.DataFrame('SP.POP.TOTL', economy='WLD', time=range(2000, 2024))
-pop_df = pop_df.rename(columns={'value': 'population'}).reset_index()
-pop_df['year'] = pop_df['time'].astype(int)
+# Fetch population data and robustly get the year column
+pop_df = wb.data.DataFrame('SP.POP.TOTL', economy='WLD', time=range(2000, 2024)).reset_index()
+# Check which time column exists
+time_col = 'time' if 'time' in pop_df.columns else 'Time'
+pop_df['year'] = pop_df[time_col].astype(int)
+pop_df = pop_df.rename(columns={'value': 'population'})
 pop_df = pop_df[['year', 'population']]
 
 st.subheader("Sample (Real) Population Data")
