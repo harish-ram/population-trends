@@ -4,12 +4,6 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 import numpy as np
 import requests
-import zipfileimport streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-from sklearn.linear_model import LinearRegression
-import numpy as np
-import requests
 import zipfile
 import io
 
